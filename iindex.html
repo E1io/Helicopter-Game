@@ -1,0 +1,602 @@
+<html>
+
+<head>
+    <title>Helicopter Game</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://static.codehs.com/gulp/80550f5fc4071985bfef352d04f005ca3de931d3/chs-js-lib/chs.js"></script>
+    <style>
+        canvas {
+            border: 5px solid black;
+            display: inline-block;
+            vertical-align: top;
+        }
+        
+        aside1 {
+            text-align: left;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 20px;
+            width: 30%;
+            height: 100%;
+            padding-left: 25px;
+            margin-left: 0px;
+            float: left;
+        }
+        
+        aside2 {
+            width: 35%;
+            height: 100%;
+            padding-right: 25px;
+            padding-left: 25px;
+            float: right;
+            font-style: italic;
+        }
+        
+        body {
+            background-image: url('https://wallpaperaccess.com/full/25602.jpg');
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+        }
+    </style>
+</head>
+
+
+
+<body>
+    <aside1 style=" background-color:rgb(45, 123, 0) ">
+        <h2>Controls</h2>
+        <h4>Press Up Arrow Or Left Mouse To Go Up</h4>
+        <h4>Press Space To Replay</h4>
+        <h4>Press Right Arrow To Reset Highscore</h4>
+        <h4>Press Left Arrow to End Run</h4>
+        <h3>HIGH SCORES</h3>
+        <table class=" test-table " border="3px " style="background-color:rgb(87, 168, 235) ">
+            <thead>
+                <tr role="row ">
+                    <th> PLACE </th>
+                    <th> SCORE </th>
+                    <th>INITIALS</th>
+            </thead>
+            <tbody>
+                <tr role="row ">
+                    <td title="Place ">1ST </td>
+                    <td title="Score "><span id="hiscore "></span></td>
+                    <td title="Initials"><span id="name"></span></td>
+                </tr>
+                <tr role="row ">
+                    <td title="Place ">2ND </td>
+                    <td title="Score "><span id="hiscore2 "></span></td>
+                    <td title="Initials"><span id="name2"></span></td>
+                </tr>
+                <tr role="row ">
+                    <td title="Place ">3RD </td>
+                    <td title="Score "><span id="hiscore3 "></span></td>
+                    <td title="Initials"><span id="name3"></span></td>
+                </tr>
+                <tr role="row ">
+                    <td title="Place ">4TH </td>
+                    <td title="Score "><span id="hiscore4 "></span></td>
+                    <td title="Initials"><span id="name4"></span></td>
+                </tr>
+            </tbody>
+        </table>
+        <h4>The High Scores Will Reset When The Page Is Refeshed Or Closed And Reopened.</h4>
+        <br>
+    </aside1>
+    <aside2 style="background-color:rgb(45, 123, 0) ">
+        <h1>Helicopter Game</h1>
+        <canvas width="400 " height="500 " class="codehs-editor-canvas "></canvas>
+        <pre id="console "></pre>
+
+        <script>
+            window.onload = function() {
+                var DELAY = 40;
+                var SPEED = 5;
+                var OBSTACLE_SPEED = 5;
+                var MAX_DY = 12;
+
+
+                var copterRed = new WebImage("https://i.ibb.co/D7RhrPK/helecopter2.png")
+                var copterBlue = new WebImage("https://i.ibb.co/HG292s4/pixel-art-small-helicopter-side-245613993-removebg-preview.png ");
+                var dy = SPEED;
+
+                var OBSTACLE_WIDTH = 30;
+                var OBSTACLE_HEIGHT = 100;
+                var NUM_OBSTACLES = 3;
+
+                var clicking = false;
+                var hack = true;
+
+                var TERRAIN_WIDTH = 10;
+                var MIN_TERRAIN_HEIGHT = 20;
+                var MAX_TERRAIN_HEIGHT = 50;
+
+                var top_terrain = [];
+                var bottom_terrain = [];
+                var dust = [];
+                var obstacles = [];
+                var backgrounds = [];
+
+                var highScoreStorage = [0, 0, 0, 0];
+                var highestToLowest = highScoreStorage.sort((a, b) => b - a);
+                var hiscore = localStorage.highScore;
+                var hiscore2 = localStorage.highScore;
+                var hiscore3 = localStorage.highScore;
+                var hiscore4 = localStorage.highScore;
+
+                var points = 0;
+                var score; // text you see on the screen
+                var POINTS_PER_ROUND = 5;
+                var extraPoints;
+
+                var DUST_RADIUS = 3;
+                var DUST_BUFFER = 10;
+
+                var darkgrey = new Color(110, 99, 69);
+                var color = Color.green;
+                var newColor = new Color(0, 0, 0, 0);
+
+                var roundedNum;
+                var multiplication2 = (points / 1000) + 5;
+
+                var background;
+                var background2;
+
+                var blength = 700;
+                var backgroundX = 1;
+                var backgroundY;
+
+                var nextButton;
+                var nextText;
+                var sliderButton;
+
+                var play = true;
+
+
+                function start() {
+                    var firstTitleImage = new WebImage("https://i.ibb.co/VQyQmGY/sky-game-background-endless-running-parallex-effects-57556687.jpg");
+                    firstTitleImage.setSize(getWidth() * 2, getHeight());
+                    firstTitleImage.setPosition(0, 0);
+                    add(firstTitleImage);
+
+                    copterBlue.setSize(200, 100);
+                    copterBlue.setPosition(0, 50);
+                    copterBlue.setColor(Color.blue);
+                    add(copterBlue);
+
+                    copterRed.setSize(200, 100);
+                    copterRed.setPosition(200, 50);
+                    copterRed.setColor(Color.red);
+                    add(copterRed);
+
+                    var characterText = new Text("Select Copter With Slider", "42pt Monospace");
+                    characterText.setPosition(200, getWidth() / 2);
+
+                    var difficultyUnder = new Rectangle(300, 50);
+                    var difX = getWidth() / 2 - difficultyUnder.getWidth() / 2;
+                    var difY = getHeight() / 2 - difficultyUnder.getHeight() / 2;
+                    difficultyUnder.setPosition(difX, difY);
+                    difficultyUnder.setColor("#2a49a3");
+                    add(difficultyUnder);
+
+                    var sliderLine = new Line(getWidth() / 2 - 125, getHeight() / 2, getWidth() / 2 + 125, getHeight() / 2)
+                    add(sliderLine);
+
+                    sliderButton = new Rectangle(20, 25);
+                    var sliderX = (getWidth() / 2 - 115) - sliderButton.getWidth();
+                    var sliderY = (getHeight() / 2) - sliderButton.getHeight() / 2;
+                    sliderButton.setPosition(sliderX, sliderY);
+                    sliderButton.setColor("#a32c2a");
+                    add(sliderButton);
+
+                    mouseDragMethod(sliderChange);
+
+                    nextButton = new Rectangle(150, 50);
+                    nextButton.setPosition((getWidth() / 2) - (nextButton.getWidth() / 2), 380);
+                    nextButton.setColor("#57a8eb");
+
+                    var nextButtonBorder = new Rectangle(160, 60);
+                    nextButtonBorder.setPosition((getWidth() / 2) - (nextButtonBorder.getWidth() / 2), 375);
+                    nextButtonBorder.setColor(Color.black);
+
+                    nextText = new Text("Start", "42pt Monospace");
+                    nextText.setPosition(getWidth() / 2 - (nextText.getWidth() / 2), 420);
+
+                    add(nextButtonBorder);
+                    add(nextButton);
+                    add(nextText);
+
+                    mouseMoveMethod(buttonHover);
+                    mouseClickMethod(buttonClick);
+                }
+
+                function sliderChange(e) {
+
+                    var element = getElementAt(e.getX(), e.getY());
+
+                    if (element == sliderButton) {
+
+                        // adjust the sliders position
+                        sliderButton.setPosition(e.getX() - sliderButton.getWidth() / 2, sliderButton.getY());
+                    }
+
+                    // making borders on the left and right
+                    if (sliderButton.getX() < getWidth() / 2 - 125) {
+                        sliderButton.setPosition(getWidth() / 2 - 125, sliderButton.getY());
+                    }
+                    if (sliderButton.getX() > getWidth() / 2 + 125) {
+                        sliderButton.setPosition(getWidth() / 2 + 125, sliderButton.getY());
+                    }
+
+                }
+
+                function buttonHover(e) {
+
+                    var element = getElementAt(e.getX(), e.getY());
+
+                    if (element != null) {
+                        if (element == nextButton || element == nextText) {
+                            if (element.getColor() == "#57a8eb") {
+                                element.setColor("#3e76a3");
+                            }
+                        } else {
+                            nextButton.setColor("#57a8eb");
+                            startButton.setColor("#57a8eb");
+                        }
+                    }
+
+                }
+
+                function buttonClick(e) {
+
+                    var element = getElementAt(e.getX(), e.getY());
+
+                    if (element != null) {
+                        if (element == nextText || element == nextButton) {
+                            start2();
+                        } else if (element == startText) {
+                            start2();
+                        }
+
+
+                    }
+
+                }
+
+                function start2() {
+                    if (sliderButton.getX() < getWidth() / 2) {
+                        copter = copterBlue;
+                    } else if (sliderButton.getX() > getWidth() / 2) {
+                        copter = copterRed;
+                    }
+
+                    removeAll;
+                    points = 0;
+                    setup();
+                    setTimer(game, DELAY);
+                    setTimer(moveBackground, DELAY);
+                    mouseDownMethod(click);
+                    mouseUpMethod(released);
+                    keyDownMethod(up);
+                    keyUpMethod(down);
+
+                }
+
+                function points2() {}
+
+                function up(e) {
+                    if (e.keyCode == Keyboard.UP) {
+                        clicking = true;
+                    }
+                    if (e.keyCode == Keyboard.LEFT) {
+                        localStorage.clear();
+                    }
+                    if (e.keyCode == Keyboard.RIGHT) {
+                        removeAll();
+                        lose();
+                    }
+                    if (e.keyCode == Keyboard.SPACE) {
+                        removeAll();
+                        start();
+                    }
+                    if (e.keyCode == Keyboard.SHIFT) {
+                        hack = false;
+                    }
+                    if (e.keyCode == Keyboard.CTRL) {
+                        hack = true;
+                    }
+                    if (e.keyCode == Keyboard.A) {
+                        autoPilot();
+                    }
+                }
+
+                function down(e) {
+                    if (e.keyCode == Keyboard.UP) {
+                        clicking = false;
+                    }
+                }
+
+                function setup() {
+                    removeAll();
+                    background = new WebImage("https://i.ibb.co/jJ6d6mZ/ad7cbe3caffb10784924d6beea05782078593b0d.jpg ");
+                    background.setSize(750, 500);
+                    background.setPosition(-1, -1);
+                    add(background);
+                    background2 = new WebImage("https://i.ibb.co/jJ6d6mZ/ad7cbe3caffb10784924d6beea05782078593b0d.jpg ");
+                    background2.setSize(750, 500);
+                    background2.setPosition(749, -1);
+                    add(background2);
+
+                    copter.setSize(50, 25);
+                    copter.setPosition(getWidth() / 3, getHeight() / 2);
+                    copter.setColor(Color.blue);
+                    add(copter);
+
+                    addObstacles();
+                    addTerrain();
+
+                    score = new Text("0 ");
+                    score.setColor(Color.black);
+                    score.setPosition(10, 30);
+                    var scoreBackground = new Rectangle(80, 40);
+                    scoreBackground.setPosition(0, 0);
+                    scoreBackground.setColor(Color.grey);
+                    add(scoreBackground);
+                    add(score);
+                    highScore();
+
+                    var border1 = new Rectangle(100, 100);
+                    border1.setPosition(-100, 0);
+                    border1.setColor(Color.black);
+                    add(border1);
+
+                }
+
+                function game() {
+                    updateScore();
+                    if (hitWall()) {
+                        lose();
+                        return;
+                    }
+                    if (hack) {
+                        var collider = getCollider();
+                        if (collider != null && collider != copter) {
+                            lose();
+                            return;
+                        }
+                    }
+                    if (clicking) {
+                        dy -= 1;
+                        if (dy < -MAX_DY) {
+                            dy = -MAX_DY;
+                        }
+                    } else {
+                        dy += 1;
+                        if (dy > MAX_DY) {
+                            dy = MAX_DY;
+                        }
+                    }
+                    copter.move(0, dy);
+                    moveObstacles();
+                    moveTerrain();
+                    addDust();
+                    moveDust();
+                    moveBackground();
+                }
+
+                function click(e) {
+                    clicking = true;
+                }
+
+                function released() {
+                    clicking = false;
+                }
+
+                function addObstacles() {
+                    for (var i = 0; i < NUM_OBSTACLES; i++) {
+                        var obstacle = new Rectangle(OBSTACLE_WIDTH, OBSTACLE_HEIGHT);
+                        obstacle.setColor(Randomizer.nextColor());
+                        obstacle.setPosition(getWidth() + i * (getWidth() / NUM_OBSTACLES), Randomizer.nextInt(0, getHeight() - OBSTACLE_HEIGHT));
+                        obstacles.push(obstacle);
+                        add(obstacle);
+                    }
+                }
+
+                function moveObstacles() {
+
+                    for (var i = 0; i < obstacles.length; i++) {
+                        var obstacle = obstacles[i];
+                        obstacle.move(-multiplication2, 0);
+                        if (obstacle.getX() < 0) {
+                            obstacle.setPosition(getWidth(), Randomizer.nextInt(0, getHeight() - OBSTACLE_HEIGHT));
+                        }
+                    }
+                }
+
+                function hitWall() {
+                    var hit_top = copter.getY() < 0;
+                    var hit_bottom = copter.getY() + copter.getHeight() > getHeight();
+                    return hit_top || hit_bottom;
+                }
+
+                function updateScore() {
+                    points += POINTS_PER_ROUND;
+
+                    POINTS_PER_ROUND = (points / 1000) + 5;
+                    roundedNum = Math.round(points);
+                    score.setText(roundedNum);
+
+                    multiplication2 = (points / 2500) + 5;
+
+                    if (localStorage.highScore < roundedNum) {
+                        localStorage.highScore = roundedNum;
+                        hiscore = roundedNum;
+                        highScoreStorage.push(roundedNum);
+                        highScoreStorage.push(localStorage);
+                    }
+
+
+                }
+
+
+
+                function lose() {
+                    highScoreStorage.push(roundedNum);
+                    highScoreStorage.sort(function(a, b) {
+                        return b - a
+                    });
+                    removeAll();
+                    add(background);
+                    add(background2);
+                    play = false;
+                    stopTimer(game);
+                    stopTimer(moveBackground);
+                    clickCounter();
+                    document.getElementById("hiscore ").innerHTML = highScoreStorage[0];
+                    document.getElementById("hiscore2 ").innerHTML = highScoreStorage[1];
+                    document.getElementById("hiscore3 ").innerHTML = highScoreStorage[2];
+                    document.getElementById("hiscore4 ").innerHTML = highScoreStorage[4];
+
+                    var text = new Text("YOU LOSE! ");
+                    text.setColor(Color.white);
+                    text.setPosition(getWidth() / 2 - text.getWidth() / 2, getHeight() / 2 - 60);
+                    add(text);
+
+                    var scoreText = new Text("Score: " + roundedNum);
+                    scoreText.setColor(Color.white);
+                    scoreText.setPosition(getWidth() / 2 - scoreText.getWidth() / 2, getHeight() / 2 + 100);
+                    add(scoreText);
+
+                    var fails = new Text("You have played " + localStorage.clickcount + " times ");
+                    fails.setColor(Color.white);
+                    fails.setPosition(getWidth() / 2 - fails.getWidth() / 2, getHeight() / 2 + 60);
+                    add(fails);
+
+                    var HighScoreText = new Text("HighScore: " + localStorage.highScore);
+                    HighScoreText.setColor(Color.white);
+                    HighScoreText.setPosition(getWidth() / 2 - HighScoreText.getWidth() / 2, getHeight() / 2 + 140);
+                    add(HighScoreText);
+                }
+
+                function getCollider() {
+                    var topLeft = getElementAt(copter.getX() - 1, copter.getY() - 1);
+                    if (topLeft != null && topLeft != background && topLeft != background2) {
+                        return topLeft;
+                    }
+
+                    var topRight = getElementAt(copter.getX() + copter.getWidth() + 1, copter.getY() - 1);
+                    if (topRight != null && topRight != background && topRight != background2) {
+                        return topRight;
+                    }
+
+                    var bottomLeft = getElementAt(copter.getX() - 1, copter.getY() + copter.getHeight() + 1);
+                    if (bottomLeft != null && bottomLeft != background && bottomLeft != background2) {
+                        return bottomLeft;
+                    }
+
+                    var bottomRight = getElementAt(copter.getX() + copter.getWidth() + 1, copter.getY() + copter.getHeight() + 1);
+                    if (bottomRight != null && bottomRight != background && bottomRight != background2) {
+                        return bottomRight;
+                    }
+
+                    return null;
+                }
+
+                function addTerrain() {
+                    for (var i = 0; i < getWidth() / TERRAIN_WIDTH + 30; i++) {
+                        var height = Randomizer.nextInt(MIN_TERRAIN_HEIGHT, MAX_TERRAIN_HEIGHT);
+                        var terrain = new Rectangle(TERRAIN_WIDTH, height);
+                        terrain.setPosition(TERRAIN_WIDTH * i, 0);
+                        terrain.setColor(Randomizer.nextColor());
+                        top_terrain.push(terrain);
+                        add(terrain);
+
+                        height = Randomizer.nextInt(MIN_TERRAIN_HEIGHT, MAX_TERRAIN_HEIGHT);
+                        var bottomTerrain = new Rectangle(TERRAIN_WIDTH, height);
+                        bottomTerrain.setPosition(TERRAIN_WIDTH * i, getHeight() - bottomTerrain.getHeight());
+                        bottomTerrain.setColor(Randomizer.nextColor());
+                        bottom_terrain.push(bottomTerrain);
+                        add(bottomTerrain);
+                    }
+                }
+
+                function moveTerrain() {
+                    for (var i = 0; i < top_terrain.length; i++) {
+                        var obj = top_terrain[i];
+                        obj.move(-SPEED, 0);
+                        if (obj.getX() < -obj.getWidth()) {
+                            obj.setPosition(getWidth(), 0);
+                        }
+                    }
+
+                    for (var i = 0; i < bottom_terrain.length; i++) {
+                        var obj = bottom_terrain[i];
+                        obj.move(-SPEED, 0);
+                        if (obj.getX() < -obj.getWidth()) {
+                            obj.setPosition(getWidth(), getHeight() - obj.getHeight());
+                        }
+                    }
+
+                }
+
+                function moveBackground() {
+                    background.move(-2.5, 0);
+                    background2.move(-2.5, 0);
+
+                    if (background.getX() < -750) {
+                        background.setPosition(0, 0);
+                    }
+                    if (background2.getX() < 0) {
+                        background2.setPosition(750, 0);
+                    }
+                }
+
+                function addDust() {
+                    var d = new Circle(DUST_RADIUS);
+                    d.setColor(Randomizer.nextColor());
+                    d.setPosition(copter.getX() - d.getWidth(), copter.getY() + DUST_BUFFER);
+                    dust.push(d);
+                    add(d);
+                }
+
+                function moveDust() {
+                    for (var i = 0; i < dust.length; i++) {
+                        var d = dust[i];
+                        d.move(-SPEED, 0);
+                        d.setRadius(d.getRadius() - 0.1);
+                        if (d.getX() < 0) {
+                            remove(d);
+                            dust.remove(i);
+                            i--;
+                        }
+                    }
+                }
+
+                function highScore() {
+                    if (typeof(Storage) !== "undefined ") {
+                        if (localStorage.highScore) {
+                            localStorage.highScore = Number(localStorage.highScore);
+                        } else {
+                            localStorage.highScore = 0;
+                        }
+                    }
+                }
+
+                function clickCounter() {
+                    if (typeof(Storage) !== "undefined ") {
+                        if (localStorage.clickcount) {
+                            localStorage.clickcount = Number(localStorage.clickcount) + 1;
+                        } else {
+                            localStorage.clickcount = 1;
+                        }
+                    }
+                }
+                if (typeof start === 'function') {
+                    start();
+                }
+            };
+        </script>
+    </aside2>
+</body>
+
+</html>
